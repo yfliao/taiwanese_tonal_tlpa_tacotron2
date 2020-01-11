@@ -8,6 +8,9 @@ from text.symbols import symbols
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
 _id_to_symbol = {i: s for i, s in enumerate(symbols)}
 
+print("_symbol_to_id= ", _symbol_to_id)
+print("_id_to_symbol= ", _id_to_symbol)
+
 # Regular expression matching text enclosed in curly braces:
 _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
@@ -36,6 +39,8 @@ def text_to_sequence(text, cleaner_names):
     sequence += _symbols_to_sequence(_clean_text(m.group(1), cleaner_names))
     sequence += _arpabet_to_sequence(m.group(2))
     text = m.group(3)
+
+  print("sequence= ", sequence)
 
   return sequence
 
