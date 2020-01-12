@@ -1,4 +1,13 @@
+
+#import gpu
+# Choose one GPU
+#gpu.setup_one_gpu()
+# Run on CPU
+#gpu.setup_no_gpu()
+#
+
 import os
+import sys
 import time
 import argparse
 import math
@@ -204,7 +213,10 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     is_overflow = False
     # ================ MAIN TRAINNIG LOOP! ===================
     for epoch in range(epoch_offset, hparams.epochs):
-        print("Epoch: {}".format(epoch))
+        start0 = time.perf_counter()
+        print("============= Epoch: {} ============".format(epoch))
+        sys.stdout.flush()
+
         for i, batch in enumerate(train_loader):
             start = time.perf_counter()
             for param_group in optimizer.param_groups:
@@ -237,12 +249,13 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
             if not is_overflow and rank == 0:
                 duration = time.perf_counter() - start
-                print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
-                    iteration, reduced_loss, grad_norm, duration))
+                print("Epoch: {:>4d}, iteration: {:>4d}, Train loss: {:>4.6f}, Grad Norm: {:>4.6f}, Time: {:.2f}s/it".format(
+                    epoch, iteration, reduced_loss, grad_norm, duration))
                 logger.log_training(
                     reduced_loss, grad_norm, learning_rate, duration, iteration)
+            sys.stdout.flush()
 
-            if not is_overflow and (iteration % hparams.iters_per_checkpoint == 0):
+            if not is_overflow and (iteration >= hparams.iters_per_checkpoint) and (iteration % hparams.iters_per_checkpoint == 0):
                 validate(model, criterion, valset, iteration,
                          hparams.batch_size, n_gpus, collate_fn, logger,
                          hparams.distributed_run, rank)
@@ -253,7 +266,21 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                                     checkpoint_path)
 
             iteration += 1
-
+            sys.stdout.flush()
+        duration0 = time.perf_counter() - start0
+        print("============ Epoch: {:>4d}, iteration: {:>4d}, Time: {:.2f}s/epoch ============".format(
+                    epoch, i, duration0))
+    print("============ Save Final Model. Epoch: {:>4d}, iteration: {:>4d}  ============".format(
+                    epoch, i))
+    if not is_overflow and (iteration % hparams.iters_per_checkpoint == 0):
+        validate(model, criterion, valset, iteration,
+                 hparams.batch_size, n_gpus, collate_fn, logger,
+                 hparams.distributed_run, rank)
+        if rank == 0:
+            checkpoint_path = os.path.join(
+                output_directory, "checkpoint_{}".format(iteration))
+            save_checkpoint(model, optimizer, learning_rate, iteration,
+                            checkpoint_path)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
