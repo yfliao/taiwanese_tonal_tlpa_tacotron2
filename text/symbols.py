@@ -19,5 +19,5 @@ _iniFin = ['@' + s for s in twdict.valid_symbols]
 _pinyin = ['@' + s for s in twdict.valid_pinyins]
 
 # Export all symbols:
-symbols = [_pad] + list(_special) + list(_punctuation) + list(_letters) + list(_digits) + _arpabet + _iniFin + _pinyin
+symbols = [_pad] + list(_special) + list(_punctuation) + list(_letters) + list(_digits)
 print ("symbols= ", symbols)
